@@ -14,23 +14,41 @@ def broadcaseData(sock, message):
 
 
 def logOn(userName,userPasswd):
-    if(userName == 'find' and userPasswd=='hello'):
-        return  True
+    if userName == 'find' and userPasswd=='hello':
+        return True
     else:
         return False
 def register(userName,userPasswd):
     print('ok')
-#从文件读取用户信息
 def readUserInfoFromFile():
+    """从文件读入用户信息，目前存储的格式：
+        userName key isAdmin lastRead
+    """
+    fin=open("users", "r")
+    while 1:
+        line=fin.readline()
+        if not line:
+            break
+        tempuser = line.split(" ")
+        users[tempuser[0]] = tempuser[1:4]
     return 0
 
 def checkLog(data):
-    """传入参数data的格式是userName@key,解出name和key，匹配数据库中的"""
-    return  True
+    """
+    @return value False:用户名或者密码错误 True:成功
+    :param data: 传入参数data的格式是userName@key,解出name和key，匹配数据库中的
+    """
+    temp=data.split("@")
+    aName=temp[0]
+    aKey=temp[1]
+    if users[aName][9] == aKey:
+        return True
+    else:
+        return False
 
 def checkRegister(data):
     """传入参数userName@key，查找数据库中是否已经存在当前用户名"""
-    return  True
+    return True
 
 
 if __name__ == "__main__":
@@ -53,6 +71,8 @@ if __name__ == "__main__":
     # 建立连接的人
     loggers={}
     admins=[]
+    #从硬盘读取的已经注册的用户信息
+    users={}
     #普通用户发送的操作码和对应的操作标记
     operations={"1_":1,"2_":2}
     print("server started on port " + str(PORT))
@@ -61,7 +81,7 @@ if __name__ == "__main__":
         readSockets, writeSockets, errorSockets = select.select(CONNECTIONLIST, [], [])
         for sock in readSockets:
             # new client connects
-            if sock == serverInstance:
+            if sock == serverSocket:
                 sockfd, addr, = serverSocket.accept()
                 CONNECTIONLIST.append(sockfd)
                 anewuser=User()
@@ -71,6 +91,10 @@ if __name__ == "__main__":
             else:
                 try:
                     data = sock.recv(RECVBUFFER).decode("utf8")
+                    #仍然有问题，没法判断用户退出了。不过貌似系统会自己维护sock的连接，超时会自动判断except
+                    if not data:
+                        break
+                    print(data)
                     #如果有name,那么肯定已经登录了，直接发送消息就可以
                     if loggers[sock].name in admins:
                         # 先不管图片了,只处理文字消息
@@ -83,7 +107,11 @@ if __name__ == "__main__":
                                 #正在尝试登录
                                 if loggers[sock].state == 1:
                                     #还需要添加成功以后，服务器往回发什么数据，或者添加在checkLog里
-                                    checkLog(data)
+                                    print("logging")
+                                    if checkLog(data):
+                                        sock.send("1".encode("utf8"))
+                                    else:
+                                        sock.send("0".encode("utf8"))
                                 #正在尝试注册
                                 elif loggers[sock].state == 2:
                                     checkRegister(data)
@@ -92,11 +120,8 @@ if __name__ == "__main__":
                                     print("You have no permission")
                         else:
                             print("No connection")
-
-
-
-
-                except:
+                except Exception as err :
+                    print(err)
                     # broadcaseData(sock, "Client (%s, %s) is offline" % addr)
                     print(sock, "Client (%s, %s) is offline" % addr)
                     sock.close()
