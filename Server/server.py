@@ -44,7 +44,9 @@ def checkLog(data):
     if aName not in users:
         print("no user")
         return False
-    if users[aName][9] == aKey:
+    print(aKey)
+    print(users[aName][0])
+    if users[aName][0] == aKey:
         return True
     else:
         return False
@@ -118,6 +120,7 @@ if __name__ == "__main__":
                         if sock in loggers:
                             #尝试登录
                             if data[0:2]=='1_':
+                                print("logging")
                                 if checkLog(data[2:]):
                                     sock.sendall("1".encode("utf8"))
                                 else:

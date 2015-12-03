@@ -75,7 +75,8 @@ class Log(Frame):
         s2 = self.ent2.get()
         sock.sendall(str("1_"+s1+"@"+s2).encode("utf8"))
         self.showServerState['text']="正在登录，请等待。。。"
-        data = sock.recv(2048)
+        data = sock.recv(2048).decode("utf8")
+        print(data)
         if data:
             if data=='1':
                 controller.showChatShow()
