@@ -44,12 +44,13 @@ def checkLog(data):
     if aName not in users:
         print("no user")
         return False
-    print(aKey)
-    print(users[aName][0])
     if users[aName][0] == aKey:
-        return True
+        if(users[aName][1]=='1'):
+            return 2
+        else:
+            return 1
     else:
-        return False
+        return 0
 
 def checkRegister(data):
     """传入参数userName@key，查找数据库中是否已经存在当前用户名"""
@@ -121,10 +122,8 @@ if __name__ == "__main__":
                             #尝试登录
                             if data[0:2]=='1_':
                                 print("logging")
-                                if checkLog(data[2:]):
-                                    sock.sendall("1".encode("utf8"))
-                                else:
-                                    sock.sendall("0".encode("utf8"))
+                                temp1=checkLog(data[2:])
+                                sock.sendall(str(temp1).encode("utf8"))
                             #注册
                             elif data[0:2]=='2_':
                                 checkRegister(data[2:])
