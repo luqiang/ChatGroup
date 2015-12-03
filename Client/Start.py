@@ -1,6 +1,6 @@
 from tkinter import *
 import socket
-
+from tkinter import messagebox
 
 
 TITLE_FONT = ("Arial", 12, "")
@@ -13,6 +13,7 @@ class ClientNet:
     def connectServer(self):
         try:
             self.clientSock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+            self.clientSock.settimeout(10)
             self.clientSock.connect((self.serverHost,self.port))
             self.connected=True
             return True
@@ -48,10 +49,12 @@ class Log(Frame):
         lab1 = Label(self,text = "User:", font=TITLE_FONT)
         lab1.grid(row = 0,column = 0,sticky = W)
         self.ent1 = Entry(self)
+        self.ent1.insert(0,"test1")
         self.ent1.grid(row = 0,column = 1,sticky = W)
         lab2 = Label(self,text = "Password:", font=TITLE_FONT)
         lab2.grid(row = 1,column = 0)
         self.ent2 = Entry(self,show = "*")
+        self.ent2.insert(0,"hello")
         self.ent2.grid(row = 1,column = 1,sticky = W)
 
         self.showServerState = Label(self,text="")
@@ -70,8 +73,7 @@ class Log(Frame):
         """
         s1 = self.ent1.get()
         s2 = self.ent2.get()
-        sock.sendall("1_\n".encode("utf8"))
-        sock.sendall(str(s1+"@"+s2).encode("utf8"))
+        sock.sendall(str("1_"+s1+"@"+s2).encode("utf8"))
         self.showServerState['text']="正在登录，请等待。。。"
         data = sock.recv(2048)
         if data:
@@ -79,8 +81,6 @@ class Log(Frame):
                 controller.showChatShow()
             else:
                 self.showServerState['text']='用户名或密码错误'
-
-
         self.ent2.delete(0,len(s2))
     def register(self):
         self.destory()
@@ -140,6 +140,11 @@ class Client(Tk):
         scnWidth,scnHeight = self.maxsize() # get screen width and height
         tmpcnf = '%dx%d+%d+%d'%(curWidth,curHeight,(scnWidth-curWidth)/2,(scnHeight-curHeight)/2)
         self.geometry(tmpcnf)
+
+def on_closing():
+    if messagebox.askokcancel("Quit", "Do you want to quit?"):
+        app.net.clientSock.close()
+        app.destroy()
 
 if __name__ == "__main__":
     app = Client()

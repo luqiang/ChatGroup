@@ -41,6 +41,9 @@ def checkLog(data):
     temp=data.split("@")
     aName=temp[0]
     aKey=temp[1]
+    if aName not in users:
+        print("no user")
+        return False
     if users[aName][9] == aKey:
         return True
     else:
@@ -52,11 +55,30 @@ def checkRegister(data):
 
 
 if __name__ == "__main__":
+    # 建立连接的人
+    loggers={}
+    admins=[]
+    #从硬盘读取的已经注册的用户信息
+    users={}
+    #读用户信息
+    readUserInfoFromFile()
+
+
+
+
+
+
+
+
+
     # save normal users
     CONNECTIONLIST = []
     # save admin user
     RECVBUFFER = 4096
     PORT = 5000
+
+
+
 
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -68,13 +90,7 @@ if __name__ == "__main__":
     serverInstance.connection=serverSocket
 
     CONNECTIONLIST.append(serverSocket)
-    # 建立连接的人
-    loggers={}
-    admins=[]
-    #从硬盘读取的已经注册的用户信息
-    users={}
-    #普通用户发送的操作码和对应的操作标记
-    operations={"1_":1,"2_":2}
+
     print("server started on port " + str(PORT))
 
     while 1:
@@ -93,31 +109,24 @@ if __name__ == "__main__":
                     data = sock.recv(RECVBUFFER).decode("utf8")
                     #仍然有问题，没法判断用户退出了。不过貌似系统会自己维护sock的连接，超时会自动判断except
                     if not data:
-                        break
-                    print(data)
+                        raise Exception("null data")
                     #如果有name,那么肯定已经登录了，直接发送消息就可以
                     if loggers[sock].name in admins:
                         # 先不管图片了,只处理文字消息
                         broadcaseData(sock,data)
                     else:
                         if sock in loggers:
-                            if data in operations:
-                                loggers[sock].state = operations[data]
-                            else:
-                                #正在尝试登录
-                                if loggers[sock].state == 1:
-                                    #还需要添加成功以后，服务器往回发什么数据，或者添加在checkLog里
-                                    print("logging")
-                                    if checkLog(data):
-                                        sock.send("1".encode("utf8"))
-                                    else:
-                                        sock.send("0".encode("utf8"))
-                                #正在尝试注册
-                                elif loggers[sock].state == 2:
-                                    checkRegister(data)
-                                #登录的普通用户无权限发送
+                            #尝试登录
+                            if data[0:2]=='1_':
+                                if checkLog(data[2:]):
+                                    sock.sendall("1".encode("utf8"))
                                 else:
-                                    print("You have no permission")
+                                    sock.sendall("0".encode("utf8"))
+                            #注册
+                            elif data[0:2]=='2_':
+                                checkRegister(data[2:])
+                            else:
+                                print("no code")
                         else:
                             print("No connection")
                 except Exception as err :
