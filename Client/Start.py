@@ -1,5 +1,5 @@
 from tkinter import *
-import socket,threading,_thread
+import socket,threading,_thread,time
 from queue import Queue,Empty
 TITLE_FONT = ("Arial", 12, "")
 
@@ -34,20 +34,12 @@ class ThreadTask(threading.Thread):
                 if not clientMsg:
                     continue
                 else:
-                    # print(clientMsg)
+                    print("i got :"+clientMsg)
                     self.queue.put(clientMsg)
             except socket.timeout:
                 pass
 
 
-# def receiveMessage(container,sock):
-#     while 1:
-#         clientMsg = sock.recv(4096).decode("utf8")
-#         if not clientMsg:
-#             continue
-#         else:
-#             container.chatShow.insert(END,clientMsg)
-#             container.chatShow.yview_moveto(1.0)
 
 class ClientNet:
     def __init__(self,aHost,aPort):
@@ -69,28 +61,6 @@ class ClientNet:
 
     def sendData(self,data):
         self.clientSock.sendall(data.encode('utf8'))
-
-class ChatShow(Frame):
-    """普通用户展示的"""
-
-    def __init__(self, master, controller):
-        Frame.__init__(self, master)
-        self.pack()
-        #scrollbar
-        consoleShowScrollBar=Scrollbar(self)
-        consoleShowScrollBar.pack(side=RIGHT,fill=Y)
-        #console:text and pictures
-        consoleShow = Listbox(self,width=100,)
-        consoleShow['yscrollcommand'] = consoleShowScrollBar.set
-        consoleShow.pack(expand=1,fill=BOTH)
-        consoleShowScrollBar['command'] = consoleShow.yview()
-        position(self)
-
-    # def receiverMessage(self):
-    #     try:
-    #         self.clientSock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    #         self.clientSock.connect((self.local, self.port))
-
 class AdminShow(Frame):
     """admin用，根据客户端有关，如果只是普通用户，那么即便在客户端代码设置了也没用。"""
     def __init__(self,master,controller):
@@ -111,24 +81,27 @@ class AdminShow(Frame):
 
         # self.sendPic= Button(self.frameLeftMid)
         # self.sendPic['text'] = '发送图片'
-
-
-        self.messageInput= StringVar()
-        self.messageSend = Entry(self.frameLeftBottom,textvariable=self.messageInput)
-        self.messageSend['width'] = 70
-        self.messageSend.bind('<Return>',self.sendMessage)
-        self.messageSend.pack(fill=X)
-        self.frameLeftBottom.pack()
+        if controller.isAdmin:
+            self.messageInput= StringVar()
+            self.messageSend = Entry(self.frameLeftBottom,textvariable=self.messageInput)
+            self.messageSend['width'] = 70
+            self.messageSend.bind('<Return>',self.sendMessage)
+            self.messageSend.pack(fill=X)
+            self.frameLeftBottom.pack()
 
         position(self)
         self.queue = Queue()
-        ThreadTask(self.queue,controller.net.clientSock).start()
-        self.master.after(100,self.processQueue())
+        th=ThreadTask(self.queue,controller.net.clientSock)
+        th.start()
+        self.master.after(100,self.processQueue)
+
 
     def sendMessage(self,event):
         tempMessage=self.messageSend.get().strip(" ")
         if tempMessage:
+            print("local: "+tempMessage)
             self.controller.net.sendData(tempMessage)
+            self.messageSend.delete(0,len(self.messageSend.get()))
         else:
             print("不能发送空消息")
 
@@ -139,8 +112,8 @@ class AdminShow(Frame):
             self.chatShow.insert(END, msg)
             self.chatShow.yview_moveto(1.0)
         except Empty:
-            self.master.after(500, self.processQueue())
             pass
+        self.master.after(100, self.processQueue)
 class Log(Frame):
     def __init__(self,master, controller):
         Frame.__init__(self,master)
@@ -182,8 +155,10 @@ class Log(Frame):
         if data:
             self.ent2.delete(0,len(s2))
             if data=='1':
-                controller.showChatShow(self.master)
+                controller.isAdmin = False
+                controller.showAdminShow(self.master)
             elif data== '2':
+                controller.isAdmin = True
                 controller.showAdminShow(self.master)
             else:
                 self.showServerState['text']= '用户名或密码错误'
@@ -201,6 +176,7 @@ class Client():
         self.net=ClientNet("192.168.1.133",'5000')
         self.connectedSuccess=False
         self.app= Log(self.root,self)
+        self.isAdmin = False
         #检测服务器连接
         self.tryConnect(self.app)
 
@@ -214,22 +190,11 @@ class Client():
         else:
             showTextView.showLogInfor("服务器连接失败")
 
-    def showChatShow(self,temproot):
-        temproot.destroy()
-        temproot=Tk()
-        temproot=ChatShow(temproot,self)
 
     def showAdminShow(self,temproot):
-        temproot.destroy()
-        temproot=Tk()
-        tempFrame=AdminShow(temproot,self)
-        tempFrame.mainloop()
-
-
-        # _thread.start_new_thread(receiveMessage,(tempFrame, self.net.clientSock))
-        # receiveMessage(tempFrame,self.net.clientSock)
-
-
-
+        self.root.destroy()
+        self.root2=Tk()
+        self.tempFrame = AdminShow(self.root2,self)
+        self.root2.mainloop()
 
 runClient=Client()
