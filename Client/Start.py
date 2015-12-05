@@ -135,7 +135,7 @@ class Log(Frame):
         # button = Button(self,text = "登录",command=lambda: controller.showChatShow(), font=TITLE_FONT)
         button = Button(self,text = "登录",command=lambda :self.log(controller.net.clientSock,controller), font=TITLE_FONT)
         button.grid(row = 2,column = 0,sticky = W)
-        button2 = Button(self,text = "注册",command =None, font=TITLE_FONT)
+        button2 = Button(self,text = "注册",command =lambda :self.register(controller.net.clientSock,controller), font=TITLE_FONT)
         button2.grid(row = 2,column = 1,sticky = E)
 
         position(self)
@@ -151,8 +151,8 @@ class Log(Frame):
         sock.sendall(str("1_"+s1+"@"+s2).encode("utf8"))
         self.showServerState['text']="正在登录，请等待。。。"
         data = sock.recv(2048).decode("utf8")
-        print(data)
         if data:
+            print(data)
             self.ent2.delete(0,len(s2))
             if data=='1':
                 controller.isAdmin = False
@@ -162,8 +162,21 @@ class Log(Frame):
                 controller.showAdminShow(self.master)
             else:
                 self.showServerState['text']= '用户名或密码错误'
-    def register(self):
-        self.destory()
+
+    def register(self, sock, controller):
+        s1 = self.ent1.get()
+        s2 = self.ent2.get()
+        sock.sendall(str('2_' + s1 + "@"+s2).encode('utf8'))
+        self.showServerState['text']='正在注册，请等待。。'
+        data = sock.recv(2048).decode('utf8')
+        if data:
+            print("register: "+data)
+            if data == '1':
+                self.showServerState['text']="注册成功"
+            elif data == '0':
+                self.showServerState['text'] = '用户已经存在'
+            else:
+                self.showServerState['text'] = '未知错误！'
         return True
 
     def showLogInfor(self,text):
@@ -173,7 +186,7 @@ class Log(Frame):
 class Client():
     def __init__(self):
         self.root=Tk()
-        self.net=ClientNet("192.168.1.133",'5000')
+        self.net=ClientNet("192.168.1.201",'5000')
         self.connectedSuccess=False
         self.app= Log(self.root,self)
         self.isAdmin = False

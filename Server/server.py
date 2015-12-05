@@ -32,7 +32,9 @@ def readUserInfoFromFile():
             break
         tempuser = line.split(" ")
         users[tempuser[0]] = tempuser[1:4]
+    fin.close()
     return 0
+
 
 def checkLog(data,sock):
     """
@@ -63,10 +65,14 @@ def checkRegister(data):
     aName = temp[0]
     aKey = temp[1]
     if aName in users:
-        return False
-
-    users[aName]
-    return True
+        return '0'
+    tempContent=[aKey,'0','0']
+    users[aName]=tempContent
+    #write content to file
+    f=open('users','a')
+    f.write(aName+' '+aKey+' '+'0'+' '+'0')
+    f.close()
+    return '1'
 
 
 if __name__ == "__main__":
@@ -77,22 +83,11 @@ if __name__ == "__main__":
     #读用户信息
     readUserInfoFromFile()
 
-
-
-
-
-
-
-
-
     # save normal users
     CONNECTIONLIST = []
     # save admin user
     RECVBUFFER = 4096
     PORT = 5000
-
-
-
 
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -127,9 +122,9 @@ if __name__ == "__main__":
                     #如果有name,那么肯定已经登录了，直接发送消息就可以
                     if loggers[sock].isAdmin:
                         # 先不管图片了,只处理文字消息
-                        data="admin "+loggers[sock].name+" say: "+data
-                        broadcaseData(sock,data)
-                        print("admin say :"+data)
+                        data="admin " + loggers[sock].name + " say: " + data
+                        broadcaseData(sock, data)
+                        print("admin say :" + data)
                     else:
                         if sock in loggers:
                             #尝试登录
@@ -140,7 +135,9 @@ if __name__ == "__main__":
                                 sock.sendall(str(temp1).encode("utf8"))
                             #注册
                             elif data[0:2]=='2_':
-                                checkRegister(data[2:])
+                                print('registering')
+                                temp2 = checkRegister(data[2:])
+                                sock.sendall(str(temp2).encode('utf8'))
                             else:
                                 print("no code")
                         else:

@@ -4,3 +4,4 @@ log4j:WARN No appenders could be found for logger (io.netty.util.internal.loggin
 log4j:WARN Please initialize the log4j system properly.
 log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
 [ 860479]   WARN - ution.process.OSProcessHandler - Process has been already terminated: /usr/bin/python3.4 /home/find/Dropbox/gitoschina/ChatGroup/Server/server.py 
+[17878550]   WARN - pl.local.NativeFileWatcherImpl - Watcher terminated with exit code 0 
