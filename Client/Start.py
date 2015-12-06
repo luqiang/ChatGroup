@@ -114,6 +114,7 @@ class AdminShow(Frame):
         except Empty:
             pass
         self.master.after(100, self.processQueue)
+
 class Log(Frame):
     def __init__(self,master, controller):
         Frame.__init__(self,master)

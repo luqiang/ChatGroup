@@ -1,5 +1,6 @@
 import socket, select
 from user import *
+import time
 
 #还要改成From admin
 def broadcaseData(sock, message):
@@ -8,6 +9,7 @@ def broadcaseData(sock, message):
             try:
                 print("broad"+message)
                 socket.send(message.encode("utf8"))
+                loggers[sock].index = loggers[sock].index + 1
             except:
                 print(sock, "Client (%s, %s) is offline" % addr)
                 socket.close()
@@ -19,8 +21,6 @@ def logOn(userName,userPasswd):
         return True
     else:
         return False
-def register(userName,userPasswd):
-    print('ok')
 def readUserInfoFromFile():
     """从文件读入用户信息，目前存储的格式：
         userName key isAdmin lastRead
@@ -38,7 +38,7 @@ def readUserInfoFromFile():
 
 def checkLog(data,sock):
     """
-    @return value False:用户名或者密码错误 True:成功
+    @return value 0:用户名或者密码错误 1:普通用户 2:管理员
     :param data: 传入参数data的格式是userName@key,解出name和key，匹配数据库中的
     """
     temp=data.split("@")
@@ -50,7 +50,7 @@ def checkLog(data,sock):
     if users[aName][0] == aKey:
         loggers[sock].name=aName
         loggers[sock].logged= True
-
+        loggers[sock].index = int(users[aName][2])
         if(users[aName][1]=='1'):
             loggers[sock].isAdmin = True
             return 2
@@ -74,6 +74,22 @@ def checkRegister(data):
     f.close()
     return '1'
 
+def wirteChat(data):
+    """写聊天记录到文件"""
+    f = open("chats", 'a')
+    f.write(data + "\n")
+    f.close()
+def readChat():
+    """读取聊天记录"""
+    f = open("chats", 'r')
+    data=[]
+    while 1:
+        line=f.readline()
+        if not line:
+            break
+        data.append(line)
+    f.close()
+    return data
 
 if __name__ == "__main__":
     # 建立连接的人
@@ -82,7 +98,12 @@ if __name__ == "__main__":
     users={}
     #读用户信息
     readUserInfoFromFile()
-
+    #读取聊天记录
+    chatRecords=[]
+    chatRecords=readChat()
+    theLastestRecordIndex=len(chatRecords) - 1
+    if theLastestRecordIndex<0:
+        theLastestRecordIndex = 0
     # save normal users
     CONNECTIONLIST = []
     # save admin user
@@ -124,15 +145,23 @@ if __name__ == "__main__":
                         # 先不管图片了,只处理文字消息
                         data="admin " + loggers[sock].name + " say: " + data
                         broadcaseData(sock, data)
-                        print("admin say :" + data)
+                        wirteChat(data)
+                        theLastestRecordIndex = theLastestRecordIndex + 1
+                        print(data)
                     else:
                         if sock in loggers:
                             #尝试登录
                             if data[0:2]=='1_':
                                 print("logging")
                                 temp1=checkLog(data[2:],sock)
-
                                 sock.sendall(str(temp1).encode("utf8"))
+                                time.sleep(0.2)
+                                print("send data to clients")
+                                if temp1 != 0:
+                                    for i in range(loggers[sock].index, theLastestRecordIndex+1):
+                                        sock.sendall(str(chatRecords[i]).encode('utf8'))
+                                    loggers[sock].index=theLastestRecordIndex
+                                    users[loggers[sock].name][2]=str(theLastestRecordIndex)
                             #注册
                             elif data[0:2]=='2_':
                                 print('registering')
