@@ -1,15 +1,18 @@
 import socket, select
 from user import *
-import time
+import time,threading
 
 #还要改成From admin
 def broadcaseData(sock, message):
+    #防止出现在一行
+    time.sleep(0.5)
     for socket in CONNECTIONLIST:
         if socket != serverSocket:
             try:
                 print("broad"+message)
                 socket.send(message.encode("utf8"))
                 loggers[sock].index = loggers[sock].index + 1
+                users[loggers[sock].name][2] = str(int(users[loggers[sock].name][2])+1)
             except:
                 print(sock, "Client (%s, %s) is offline" % addr)
                 socket.close()
@@ -30,6 +33,7 @@ def readUserInfoFromFile():
         line=fin.readline()
         if not line:
             break
+        line=line.replace("\n","")
         tempuser = line.split(" ")
         users[tempuser[0]] = tempuser[1:4]
     fin.close()
@@ -74,7 +78,19 @@ def checkRegister(data):
     f.close()
     return '1'
 
-def wirteChat(data):
+def writeUserInfor():
+    """定时写用户的读取记录到文件"""
+    while 1:
+        f = open('users', 'w')
+        for aUser in users:
+            f.write(aUser + ' ')
+            for i in users[aUser]:
+                f.write(str(i) + ' ')
+            f.write("\n")
+        f.close()
+        time.sleep(1)
+
+def writeChat(data):
     """写聊天记录到文件"""
     f = open("chats", 'a')
     f.write(data + "\n")
@@ -110,6 +126,11 @@ if __name__ == "__main__":
     RECVBUFFER = 4096
     PORT = 5000
 
+    writeThread = threading.Thread(target = writeUserInfor)
+    writeThread.start()
+
+
+
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     serverSocket.bind(('', PORT))
@@ -143,11 +164,12 @@ if __name__ == "__main__":
                     #如果有name,那么肯定已经登录了，直接发送消息就可以
                     if loggers[sock].isAdmin:
                         # 先不管图片了,只处理文字消息
-                        data="admin " + loggers[sock].name + " say: " + data
+                        data="管理员" + loggers[sock].name + "：" + data
                         broadcaseData(sock, data)
-                        wirteChat(data)
+                        writeChat(data)
+                        chatRecords.append(data)
                         theLastestRecordIndex = theLastestRecordIndex + 1
-                        print(data)
+                        print(str(theLastestRecordIndex)+"-"+data)
                     else:
                         if sock in loggers:
                             #尝试登录
